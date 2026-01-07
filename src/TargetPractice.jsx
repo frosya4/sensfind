@@ -245,22 +245,25 @@ export default function TargetPractice({ onComplete, onBack }) {
 
         if (!accuracyResult || !trackingResult) return
 
-        // Комбинированная оценка
-        // Штрафуем сильнее за перелёты (это признак слишком высокой sens)
-        const overshootPenalty = accuracyResult.totalOvershoots * 8
-        const correctionPenalty = accuracyResult.totalCorrections * 3
-        const timePenalty = Math.max(0, (accuracyResult.avgTime - 350) / 5)
+        // Комбинированная оценка с нормализацией
+        // Все компоненты оцениваются по шкале 0-100
 
-        // Бонус за эффективность пути (низкая sens даёт более прямые пути)
-        const pathBonus = accuracyResult.avgPathEfficiency * 0.3
+        // Время: 300ms = 100 баллов, 1000ms = 0 баллов
+        const timeScore = Math.max(0, Math.min(100, 100 - ((accuracyResult.avgTime - 300) / 7)))
 
-        // Трекинг важен для баланса
-        const trackingBonus = trackingResult.trackingScore * 0.4
+        // Перелёты: 0 = 100 баллов, 20+ = 0 баллов (штрафуем сильно)
+        const overshootScore = Math.max(0, 100 - accuracyResult.totalOvershoots * 5)
 
-        // Базовая оценка с балансировкой
-        const baseScore = 100
-        const accuracyScore = baseScore - overshootPenalty - correctionPenalty - timePenalty + pathBonus
-        const combinedScore = Math.round((accuracyScore * 0.6 + trackingResult.trackingScore * 0.4))
+        // Трекинг уже 0-100
+        const trackingScore = trackingResult.trackingScore
+
+        // Взвешенная оценка: 
+        // 35% время, 40% перелёты (важнее!), 25% трекинг
+        const combinedScore = Math.round(
+            timeScore * 0.35 +
+            overshootScore * 0.40 +
+            trackingScore * 0.25
+        )
 
         const result = {
             sensitivity: currentSensitivity,
